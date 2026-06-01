@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { getUsers } from '../api/users';
 import { User } from '../types/User';
 import classNames from 'classnames';
+import PropTypes from 'prop-types';
 
 interface Prop {
   selectedUser: User | null;
@@ -91,4 +92,16 @@ export const UserSelector: React.FC<Prop> = ({
       </div>
     </div>
   );
+};
+
+UserSelector.propTypes = {
+  selectedUser: PropTypes.shape({
+    id: PropTypes.number.isRequired,
+    name: PropTypes.string.isRequired,
+    username: PropTypes.string.isRequired,
+    email: PropTypes.string.isRequired,
+  }),
+  setSelectedUser: PropTypes.func.isRequired,
+  setIsLoading: PropTypes.func.isRequired,
+  setErrorMessage: PropTypes.func.isRequired,
 };

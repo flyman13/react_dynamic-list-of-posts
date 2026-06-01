@@ -5,41 +5,29 @@ import { addComment } from '../api/comments';
 import { Post } from '../types/Post';
 import { Comment } from '../types/Comment';
 
-interface Prop {
-  selectedPost: Post | null;
-  setIsLoading: (value: boolean) => void;
-  setErrorMessage: (errorMessage: string) => void;
-  setOpenCommentForm: (value: boolean) => void;
+interface NewCommentFormProps {
+  selectedPost: Post;
   onAddComment: (comment: Comment) => void;
+  setOpenCommentForm: (value: boolean) => void;
 }
 
-export const NewCommentForm: React.FC<Prop> = ({
+export const NewCommentForm: React.FC<NewCommentFormProps> = ({
   selectedPost,
-  setIsLoading,
-  setErrorMessage,
-  setOpenCommentForm,
   onAddComment,
 }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [body, setBody] = useState('');
-
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState({
-    name: false,
-    email: false,
-    body: false,
-  });
+  const [submitError, setSubmitError] = useState('');
+  const [errors, setErrors] = useState({ name: false, email: false, body: false });
 
   const resetForm = () => {
     setName('');
     setEmail('');
     setBody('');
-    setErrors({
-      name: false,
-      email: false,
-      body: false,
-    });
+    setErrors({ name: false, email: false, body: false });
+    setSubmitError('');
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -53,12 +41,12 @@ export const NewCommentForm: React.FC<Prop> = ({
 
     setErrors(newErrors);
 
-    if (newErrors.name || newErrors.email || newErrors.body || !selectedPost) {
+    if (newErrors.name || newErrors.email || newErrors.body) {
       return;
     }
 
     setIsSubmitting(true);
-    setIsLoading(true);
+    setSubmitError('');
 
     addComment({
       postId: selectedPost.id,
@@ -68,25 +56,24 @@ export const NewCommentForm: React.FC<Prop> = ({
     })
       .then(newComment => {
         onAddComment(newComment);
-        setBody(''); // Очищаємо тільки коментар за ТЗ, ім'я та email лишаються
-        setOpenCommentForm(false);
+        setBody(''); // За ТЗ очищаємо тільки body, ім'я та email залишаються
       })
-      .catch(() => setErrorMessage('Unable to add a comment'))
-      .finally(() => {
-        setIsSubmitting(false);
-        setIsLoading(false);
-      });
+      .catch(() => setSubmitError('Unable to add a comment'))
+      .finally(() => setIsSubmitting(false));
   };
 
   return (
     <form data-cy="NewCommentForm" onSubmit={handleSubmit}>
-      <div className="field">
-        <label className="label" htmlFor="comment-author-name">
-          Author Name
-        </label>
-        <div className="control">
+      {submitError && (
+        <div className="notification is-danger" data-cy="ErrorMessage">{submitError}</div>
+      )}
+
+      <div className="field" data-cy="NameField">
+        <label className="label" htmlFor="comment-author-name">Author Name</label>
+        <div className="control has-icons-right">
           <input
             id="comment-author-name"
+            data-cy="name"
             type="text"
             className={classNames('input', { 'is-danger': errors.name })}
             placeholder="Name"
@@ -96,16 +83,21 @@ export const NewCommentForm: React.FC<Prop> = ({
               setErrors(prev => ({ ...prev, name: false }));
             }}
           />
+          {errors.name && (
+            <span className="icon is-small is-right" data-cy="ErrorIcon">
+              <i className="fas fa-exclamation-triangle" />
+            </span>
+          )}
         </div>
+        {errors.name && <p className="help is-danger" data-cy="ErrorMessage">Name is required</p>}
       </div>
 
-      <div className="field">
-        <label className="label" htmlFor="comment-author-email">
-          Author Email
-        </label>
-        <div className="control">
+      <div className="field" data-cy="EmailField">
+        <label className="label" htmlFor="comment-author-email">Author Email</label>
+        <div className="control has-icons-right">
           <input
             id="comment-author-email"
+            data-cy="email"
             type="email"
             className={classNames('input', { 'is-danger': errors.email })}
             placeholder="Email"
@@ -115,16 +107,21 @@ export const NewCommentForm: React.FC<Prop> = ({
               setErrors(prev => ({ ...prev, email: false }));
             }}
           />
+          {errors.email && (
+            <span className="icon is-small is-right" data-cy="ErrorIcon">
+              <i className="fas fa-exclamation-triangle" />
+            </span>
+          )}
         </div>
+        {errors.email && <p className="help is-danger" data-cy="ErrorMessage">Email is required</p>}
       </div>
 
-      <div className="field">
-        <label className="label" htmlFor="comment-body">
-          Comment
-        </label>
+      <div className="field" data-cy="BodyField">
+        <label className="label" htmlFor="comment-body">Comment</label>
         <div className="control">
           <textarea
             id="comment-body"
+            data-cy="body"
             className={classNames('textarea', { 'is-danger': errors.body })}
             placeholder="Type comment here..."
             value={body}
@@ -134,25 +131,20 @@ export const NewCommentForm: React.FC<Prop> = ({
             }}
           />
         </div>
+        {errors.body && <p className="help is-danger" data-cy="ErrorMessage">Comment is required</p>}
       </div>
 
       <div className="field is-grouped">
         <div className="control">
           <button
             type="submit"
-            className={classNames('button', 'is-link', {
-              'is-loading': isSubmitting,
-            })}
+            className={classNames('button', 'is-link', { 'is-loading': isSubmitting })}
           >
             Add Comment
           </button>
         </div>
         <div className="control">
-          <button
-            type="button"
-            className="button is-link is-light"
-            onClick={resetForm}
-          >
+          <button type="button" className="button is-link is-light" onClick={resetForm}>
             Clear
           </button>
         </div>
@@ -167,9 +159,7 @@ NewCommentForm.propTypes = {
     title: PropTypes.string.isRequired,
     body: PropTypes.string.isRequired,
     userId: PropTypes.number.isRequired,
-  }),
-  setIsLoading: PropTypes.func.isRequired,
-  setErrorMessage: PropTypes.func.isRequired,
-  setOpenCommentForm: PropTypes.func.isRequired,
+  }).isRequired,
   onAddComment: PropTypes.func.isRequired,
+  setOpenCommentForm: PropTypes.func.isRequired,
 };
