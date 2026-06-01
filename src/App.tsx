@@ -25,24 +25,22 @@ export const App = () => {
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
-    if (!selectedUser) {
-      return;
+    if (selectedUser) {
+      setIsLoading(true);
+      setSelectedPost(null);
+      setOpenPostId(null);
+      setPosts([]);
+      setPostsLoaded(false);
+      setErrorMessage('');
+
+      getPosts(selectedUser.id)
+        .then(p => setPosts(p))
+        .catch(() => setErrorMessage('Unable to load posts'))
+        .finally(() => {
+          setPostsLoaded(true);
+          setIsLoading(false);
+        });
     }
-
-    setIsLoading(true);
-    setSelectedPost(null);
-    setOpenPostId(null);
-    setPosts([]);
-    setPostsLoaded(false);
-    setErrorMessage('');
-
-    getPosts(selectedUser.id)
-      .then(p => setPosts(p))
-      .catch(() => setErrorMessage('Unable to load posts'))
-      .finally(() => {
-        setPostsLoaded(true);
-        setIsLoading(false);
-      });
   }, [selectedUser]);
 
   const handleTogglePost = (post: Post) => {
@@ -56,12 +54,9 @@ export const App = () => {
     }
   };
 
-  const noPostsYet =
-    selectedUser && postsLoaded && posts.length === 0 && !errorMessage ? (
-      <div className="notification is-warning" data-cy="NoPostsYet">
-        No posts yet
-      </div>
-    ) : null;
+  // Виносимо логіку в змінну, щоб не було конфліктів відступів у JSX
+  const showNoPostsWarning =
+    selectedUser && postsLoaded && posts.length === 0 && !errorMessage;
 
   return (
     <main className="section">
@@ -77,14 +72,11 @@ export const App = () => {
                   setErrorMessage={setErrorMessage}
                 />
               </div>
-
               <div className="block" data-cy="MainContent">
                 {!selectedUser && (
                   <p data-cy="NoSelectedUser">No user selected</p>
                 )}
-
                 {isLoading && <Loader />}
-
                 {errorMessage && (
                   <div
                     className="notification is-danger"
@@ -94,7 +86,19 @@ export const App = () => {
                   </div>
                 )}
 
-                {noPostsYet}
+                {showNoPostsWarning && (
+                  <div className="notification is-warning" data-cy="NoPostsYet">
+                    No posts yet
+                  </div>
+                )}
+
+                {selectedUser && postsLoaded && posts.length > 0 && (
+                  <PostsList
+                    posts={posts}
+                    selectedPost={selectedPost}
+                    onTogglePost={handleTogglePost}
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -118,16 +122,6 @@ export const App = () => {
                   setErrorMessage={setErrorMessage}
                 />
               )}
-            </div>
-          </div>
-          {/* Posts list on the left column */}
-          <div className="tile is-parent is-4-desktop">
-            <div className="tile is-child box">
-              <PostsList
-                posts={posts}
-                selectedPost={selectedPost}
-                onTogglePost={handleTogglePost}
-              />
             </div>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import PropTypes from 'prop-types';
 import { Loader } from './Loader';
 import { NewCommentForm } from './NewCommentForm';
 import { Post } from '../types/Post';
@@ -63,20 +64,9 @@ export const PostDetails: React.FC<Prop> = ({
     setOpenCommentForm(false);
   }, [selectedPost]);
 
-  let noCommentsMessage = null;
-
-  if (
-    !isLoading &&
-    !isLoadingComments &&
-    !commentsError &&
-    comments.length === 0
-  ) {
-    noCommentsMessage = (
-      <p className="title is-4" data-cy="NoCommentsMessage">
-        No comments yet
-      </p>
-    );
-  }
+  // Виносимо складну умову, щоб лінтер не ламав таби наприкінці файлу
+  const showNoCommentsMessage =
+    !isLoading && !isLoadingComments && !commentsError && comments.length === 0;
 
   return (
     <div className="content" data-cy="PostDetails">
@@ -131,7 +121,11 @@ export const PostDetails: React.FC<Prop> = ({
           </>
         )}
 
-        {noCommentsMessage}
+        {showNoCommentsMessage && (
+          <p className="title is-4" data-cy="NoCommentsMessage">
+            No comments yet
+          </p>
+        )}
 
         {!openCommentForm && !isLoading && !commentsError && (
           <button
@@ -158,4 +152,16 @@ export const PostDetails: React.FC<Prop> = ({
       )}
     </div>
   );
+};
+
+PostDetails.propTypes = {
+  selectedPost: PropTypes.shape({
+    id: PropTypes.number.isRequired,
+    title: PropTypes.string.isRequired,
+    body: PropTypes.string.isRequired,
+    userId: PropTypes.number.isRequired,
+  }),
+  isLoading: PropTypes.bool.isRequired,
+  setIsLoading: PropTypes.func.isRequired,
+  setErrorMessage: PropTypes.func.isRequired,
 };
