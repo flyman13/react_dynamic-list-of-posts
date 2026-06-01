@@ -1,16 +1,13 @@
+import type { FC } from 'react';
 import { Post } from '../types/Post';
 
-interface Prop {
+interface Props {
   posts: Post[];
   selectedPost: Post | null;
   onTogglePost: (post: Post) => void;
 }
 
-export const PostsList: React.FC<Prop> = ({
-  posts,
-  selectedPost,
-  onTogglePost,
-}) => {
+export const PostsList: FC<Props> = ({ posts, selectedPost, onTogglePost }) => {
   return (
     <div data-cy="PostsList">
       <p className="title">Posts:</p>

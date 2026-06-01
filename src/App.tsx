@@ -1,4 +1,4 @@
-/* eslint-disable prettier/prettier */
+import { useEffect, useState } from 'react';
 import classNames from 'classnames';
 import 'bulma/css/bulma.css';
 import '@fortawesome/fontawesome-free/css/all.css';
@@ -8,7 +8,6 @@ import { PostsList } from './components/PostsList';
 import { PostDetails } from './components/PostDetails';
 import { UserSelector } from './components/UserSelector';
 import { Loader } from './components/Loader';
-import { useEffect, useState } from 'react';
 import { getPosts } from './api/posts';
 
 import { Post } from './types/Post';
@@ -57,6 +56,13 @@ export const App = () => {
     }
   };
 
+  const noPostsYet =
+    selectedUser && postsLoaded && posts.length === 0 && !errorMessage ? (
+      <div className="notification is-warning" data-cy="NoPostsYet">
+        No posts yet
+      </div>
+    ) : null;
+
   return (
     <main className="section">
       <div className="container">
@@ -71,11 +77,14 @@ export const App = () => {
                   setErrorMessage={setErrorMessage}
                 />
               </div>
+
               <div className="block" data-cy="MainContent">
                 {!selectedUser && (
                   <p data-cy="NoSelectedUser">No user selected</p>
                 )}
+
                 {isLoading && <Loader />}
+
                 {errorMessage && (
                   <div
                     className="notification is-danger"
@@ -84,24 +93,8 @@ export const App = () => {
                     Something went wrong!
                   </div>
                 )}
-                {selectedUser &&
-                  postsLoaded &&
-                  posts.length === 0 &&
-                  !errorMessage && (
-                  <div
-                    className="notification is-warning"
-                    data-cy="NoPostsYet"
-                  >
-                      No posts yet
-                  </div>
-                )}
-                {selectedUser && postsLoaded && posts.length > 0 && (
-                  <PostsList
-                    posts={posts}
-                    selectedPost={selectedPost}
-                    onTogglePost={handleTogglePost}
-                  />
-                )}
+
+                {noPostsYet}
               </div>
             </div>
           </div>
@@ -125,6 +118,16 @@ export const App = () => {
                   setErrorMessage={setErrorMessage}
                 />
               )}
+            </div>
+          </div>
+          {/* Posts list on the left column */}
+          <div className="tile is-parent is-4-desktop">
+            <div className="tile is-child box">
+              <PostsList
+                posts={posts}
+                selectedPost={selectedPost}
+                onTogglePost={handleTogglePost}
+              />
             </div>
           </div>
         </div>
