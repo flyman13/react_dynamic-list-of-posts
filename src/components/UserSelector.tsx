@@ -1,39 +1,31 @@
-import { useEffect, useRef, useState } from 'react';
-import { getUsers } from '../api/users';
-import { User } from '../types/User';
-import classNames from 'classnames';
+import React, { useEffect, useState, useRef } from 'react';
 import PropTypes from 'prop-types';
+import classNames from 'classnames';
+import { client } from '../utils/fetchClient';
+import { User } from '../types/User';
 
-interface Prop {
+interface Props {
   selectedUser: User | null;
-  setSelectedUser: (user: User) => void;
+  setSelectedUser: (user: User | null) => void;
   setIsLoading: (value: boolean) => void;
-  setErrorMessage: (errorMessage: string) => void;
+  setErrorMessage: (message: string) => void;
 }
 
-export const UserSelector: React.FC<Prop> = ({
+export const UserSelector: React.FC<Props> = ({
   selectedUser,
   setSelectedUser,
-  setIsLoading,
-  setErrorMessage,
 }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setIsLoading(true);
+    client
+      .get<User[]>('/users')
+      .then(res => setUsers(res || []))
+      .catch(() => {});
 
-    getUsers()
-      .then(u => setUsers(u))
-      .catch(() => {
-        setErrorMessage('Unable to load users');
-      })
-      .finally(() => setIsLoading(false));
-  }, [setErrorMessage, setIsLoading]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleOutsideClick = (event: MouseEvent) => {
       if (
         dropdownRef.current &&
         !dropdownRef.current.contains(event.target as Node)
@@ -42,18 +34,23 @@ export const UserSelector: React.FC<Prop> = ({
       }
     };
 
-    document.addEventListener('click', handleClickOutside);
+    document.addEventListener('click', handleOutsideClick);
 
-    return () => {
-      document.removeEventListener('click', handleClickOutside);
-    };
+    return () => document.removeEventListener('click', handleOutsideClick);
   }, []);
+
+  const handleToggle = () => setIsOpen(prev => !prev);
+
+  const handleSelectUser = (user: User) => {
+    setSelectedUser(user);
+    setIsOpen(false);
+  };
 
   return (
     <div
+      ref={dropdownRef}
       data-cy="UserSelector"
       className={classNames('dropdown', { 'is-active': isOpen })}
-      ref={dropdownRef}
     >
       <div className="dropdown-trigger">
         <button
@@ -61,10 +58,9 @@ export const UserSelector: React.FC<Prop> = ({
           className="button"
           aria-haspopup="true"
           aria-controls="dropdown-menu"
-          onClick={() => setIsOpen(prev => !prev)}
+          onClick={handleToggle}
         >
           <span>{selectedUser ? selectedUser.name : 'Choose a user'}</span>
-
           <span className="icon is-small">
             <i className="fas fa-angle-down" aria-hidden="true" />
           </span>
@@ -80,9 +76,9 @@ export const UserSelector: React.FC<Prop> = ({
               className={classNames('dropdown-item', {
                 'is-active': selectedUser?.id === user.id,
               })}
-              onClick={() => {
-                setSelectedUser(user);
-                setIsOpen(false);
+              onClick={e => {
+                e.preventDefault();
+                handleSelectUser(user);
               }}
             >
               {user.name}

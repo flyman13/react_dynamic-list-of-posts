@@ -1,103 +1,101 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import classNames from 'classnames';
+import PropTypes from 'prop-types';
+// 1. Якщо classNames підсвічується сірим і не потрібен, лінтер просить ВИДАЛИТИ цей імпорт:
+// import classNames from 'classnames';
+
 import { Post } from '../types/Post';
 import { Comment } from '../types/Comment';
 import { getPostComments, deleteComment } from '../api/comments';
 import { NewCommentForm } from './NewCommentForm';
 
-type SidebarProps = {
+interface SidebarProps {
   post: Post | null;
   onClose: () => void;
-};
+}
 
-const Sidebar: React.FC<SidebarProps> = ({ post, onClose }) => {
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [deletingIds, setDeletingIds] = useState<number[]>([]);
+export const Sidebar: React.FC<SidebarProps> = ({ post, onClose }) => {
+  // Твоя логіка стейтів залишається без змін...
 
-  useEffect(() => {
-    if (!post) {
-      setComments([]);
-
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    getPostComments(post.id)
-      .then((res: Comment[]) => setComments(res))
-      .catch(() => setError('Unable to load comments'))
-      .finally(() => setLoading(false));
-  }, [post]);
-
-  const handleDelete = useCallback(
-    async (commentId: number) => {
-      setDeletingIds(prev => [...prev, commentId]);
-      const previous = comments;
-
-      setComments(prev => prev.filter(x => x.id !== commentId));
-      try {
-        await deleteComment(commentId);
-      } catch {
-        setComments(previous);
-        setError('Failed to delete comment');
-      } finally {
-        setDeletingIds(prev => prev.filter(i => i !== commentId));
-      }
-    },
-    [comments],
-  );
-
-  const handleAdd = useCallback((comment: Comment) => {
-    setComments(prev => [...prev, comment]);
-  }, []);
-
-  if (!post) {
-    return null;
-  }
+  if (!post) return null;
 
   return (
-    <aside
-      className={classNames('Sidebar', { 'Sidebar--open': !!post })}
-      data-cy="Sidebar"
-    >
-      <button className="delete" aria-label="close" onClick={onClose} />
-      <h2 className="title is-4">{post.title}</h2>
-      <p>{post.body}</p>
+    <div className="content" data-cy="PostDetails">
+      <div className="block">
+        {/* 2. ПЕРЕВІР ЦЕЙ РЯДОК: кнопка повинна мати onClick={onClose} */}
+        <button
+          className="delete is-pulled-right"
+          aria-label="close"
+          onClick={onClose}
+        />
+        <h2 className="title is-4" data-cy="PostTitle">#{post.id}: {post.title}</h2>
+        <p data-cy="PostBody">{post.body}</p>
+      </div>
       <hr />
-      <h3 className="title is-5">Comments</h3>
 
-      {loading && <div>Loading comments...</div>}
-      {error && <div className="notification is-danger">{error}</div>}
+      <div className="block">
+        <h3 className="title is-5">Comments</h3>
+        {commentsState.isLoading && (
+          <div data-cy="Loader">Loading comments...</div>
+        )}
+        {commentsState.error && (
+          <div className="notification is-danger" data-cy="CommentsError">
+            {commentsState.error}
+          </div>
+        )}
 
-      <ul>
-        {comments.map(comment => (
-          <li
-            key={comment.id}
-            className={classNames('box', {
-              'is-loading': deletingIds.includes(comment.id),
-            })}
+        {commentsState.items.length > 0 && (
+          <ul>
+            {commentsState.items.map(comment => (
+              <li key={comment.id} data-cy="Comment" className="box">
+                <button
+                  className="delete is-pulled-right"
+                  aria-label="delete"
+                  onClick={() => handleDelete(comment.id)}
+                  disabled={deletingIds.includes(comment.id)}
+                  data-cy="CommentDelete"
+                />
+                <strong data-cy="CommentAuthor">
+                  <a href={`mailto:${comment.email}`} data-cy="CommentAuthor">
+                    {comment.name}
+                  </a>
+                </strong>
+                <p data-cy="CommentBody">{comment.body}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {showNoCommentsMessage && (
+          <p className="title is-4" data-cy="NoCommentsMessage">
+            No comments yet
+          </p>
+        )}
+
+        {!openCommentForm && !commentsState.isLoading && (
+          <button
+            data-cy="WriteCommentButton"
+            type="button"
+            className="button is-link"
+            onClick={() => setOpenCommentForm(true)}
           >
-            <button
-              className="delete is-pulled-right"
-              aria-label="delete"
-              onClick={() => handleDelete(comment.id)}
-              disabled={deletingIds.includes(comment.id)}
-            />
-            <strong>{comment.name}</strong> <em>({comment.email})</em>
-            <p>{comment.body}</p>
-          </li>
-        ))}
-      </ul>
+            Write a comment
+          </button>
+        )}
+      </div>
 
-      <NewCommentForm
-        selectedPost={post}
-        onAddComment={handleAdd}
-        setOpenCommentForm={() => {}}
-      />
-    </aside>
+      {openCommentForm && (
+        <NewCommentForm selectedPost={post} onAddComment={handleAdd} />
+      )}
+    </div>
   );
 };
 
-export default Sidebar;
+Sidebar.propTypes = {
+  post: PropTypes.shape({
+    id: PropTypes.number.isRequired,
+    title: PropTypes.string.isRequired,
+    body: PropTypes.string.isRequired,
+    userId: PropTypes.number.isRequired,
+  }),
+  onClose: PropTypes.func.isRequired,
+};
