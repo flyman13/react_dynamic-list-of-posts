@@ -19,7 +19,6 @@ export const App = () => {
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
-  const [openPostId, setOpenPostId] = useState<number | null>(null);
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -31,7 +30,6 @@ export const App = () => {
 
     setIsLoading(true);
     setSelectedPost(null);
-    setOpenPostId(null);
     setPosts([]);
     setPostsLoaded(false);
     setErrorMessage('');
@@ -46,17 +44,14 @@ export const App = () => {
   }, [selectedUser]);
 
   const handleTogglePost = (post: Post) => {
-    if (openPostId === post.id) {
-      setOpenPostId(null);
+    if (selectedPost?.id === post.id) {
       setSelectedPost(null);
     } else {
-      setOpenPostId(post.id);
       setSelectedPost(post);
     }
   };
 
   const handleCloseSidebar = () => {
-    setOpenPostId(null);
     setSelectedPost(null);
   };
 

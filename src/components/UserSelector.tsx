@@ -20,31 +20,19 @@ export const UserSelector: React.FC<Props> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    client
-      .get<User[]>('/users')
+    client.get<User[]>('/users')
       .then(res => setUsers(res || []))
       .catch(() => {});
 
     const handleOutsideClick = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
 
     document.addEventListener('click', handleOutsideClick);
-
     return () => document.removeEventListener('click', handleOutsideClick);
   }, []);
-
-  const handleToggle = () => setIsOpen(prev => !prev);
-
-  const handleSelectUser = (user: User) => {
-    setSelectedUser(user);
-    setIsOpen(false);
-  };
 
   return (
     <div
@@ -58,7 +46,7 @@ export const UserSelector: React.FC<Props> = ({
           className="button"
           aria-haspopup="true"
           aria-controls="dropdown-menu"
-          onClick={handleToggle}
+          onClick={() => setIsOpen(prev => !prev)}
         >
           <span>{selectedUser ? selectedUser.name : 'Choose a user'}</span>
           <span className="icon is-small">
@@ -76,9 +64,10 @@ export const UserSelector: React.FC<Props> = ({
               className={classNames('dropdown-item', {
                 'is-active': selectedUser?.id === user.id,
               })}
-              onClick={e => {
+              onClick={(e) => {
                 e.preventDefault();
-                handleSelectUser(user);
+                setSelectedUser(user);
+                setIsOpen(false);
               }}
             >
               {user.name}
