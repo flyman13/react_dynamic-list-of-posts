@@ -1,11 +1,8 @@
-import React, { useEffect, useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
 // 1. Якщо classNames підсвічується сірим і не потрібен, лінтер просить ВИДАЛИТИ цей імпорт:
 // import classNames from 'classnames';
 
 import { Post } from '../types/Post';
-import { Comment } from '../types/Comment';
-import { getPostComments, deleteComment } from '../api/comments';
 import { NewCommentForm } from './NewCommentForm';
 
 interface SidebarProps {
@@ -16,7 +13,9 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ post, onClose }) => {
   // Твоя логіка стейтів залишається без змін...
 
-  if (!post) return null;
+  if (!post) {
+    return null;
+  }
 
   return (
     <div className="content" data-cy="PostDetails">
@@ -27,7 +26,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ post, onClose }) => {
           aria-label="close"
           onClick={onClose}
         />
-        <h2 className="title is-4" data-cy="PostTitle">#{post.id}: {post.title}</h2>
+        <h2 className="title is-4" data-cy="PostTitle">
+          #{post.id}: {post.title}
+        </h2>
         <p data-cy="PostBody">{post.body}</p>
       </div>
       <hr />
