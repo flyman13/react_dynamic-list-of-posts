@@ -2,9 +2,9 @@ import React, { useEffect, useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { Post } from '../types/Post';
 import { Comment } from '../types/Comment';
-import { getPostComments, deleteComment } from '../api/comments';
-import { NewCommentForm } from './NewCommentForm';
 import { Loader } from './Loader';
+import { NewCommentForm } from './NewCommentForm';
+import { client } from '../utils/fetchClient';
 
 interface SidebarProps {
   post: Post | null;
@@ -26,19 +26,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ post, onClose }) => {
   });
 
   useEffect(() => {
-    if (!post) {
+    if (!post || typeof post.id !== 'number' || post.id <= 0) {
       setCommentsState({ items: [], isLoading: false, error: '' });
+
       return;
     }
 
     setCommentsState({ items: [], isLoading: true, error: '' });
 
-    getPostComments(post.id)
+    client
+      .get<Comment[]>(`/comments?postId=${post.id}`)
       .then(res => {
         setCommentsState({ items: res, isLoading: false, error: '' });
       })
       .catch(() => {
-        setCommentsState({ items: [], isLoading: false, error: 'Unable to load comments' });
+        setCommentsState({
+          items: [],
+          isLoading: false,
+          error: 'Unable to load comments',
+        });
       });
   }, [post]);
 
@@ -46,28 +52,35 @@ export const Sidebar: React.FC<SidebarProps> = ({ post, onClose }) => {
     setOpenCommentForm(false);
   }, [post]);
 
-  const handleDelete = useCallback((commentId: number) => {
-    const commentToDelete = commentsState.items.find(c => c.id === commentId);
-    if (!commentToDelete) return;
+  const handleDelete = useCallback(
+    (commentId: number) => {
+      const commentToDelete = commentsState.items.find(c => c.id === commentId);
 
-    setDeletingIds(prev => [...prev, commentId]);
-    setCommentsState(prev => ({
-      ...prev,
-      items: prev.items.filter(x => x.id !== commentId),
-    }));
+      if (!commentToDelete) {
+        return;
+      }
 
-    deleteComment(commentId)
-      .catch(() => {
-        setCommentsState(prev => ({
-          ...prev,
-          items: [...prev.items, commentToDelete].sort((a, b) => a.id - b.id),
-          error: 'Failed to delete comment',
-        }));
-      })
-      .finally(() => {
-        setDeletingIds(prev => prev.filter(i => i !== commentId));
-      });
-  }, [commentsState.items]);
+      setDeletingIds(prev => [...prev, commentId]);
+      setCommentsState(prev => ({
+        ...prev,
+        items: prev.items.filter(x => x.id !== commentId),
+      }));
+
+      client
+        .delete(`/comments/${commentId}`)
+        .catch(() => {
+          setCommentsState(prev => ({
+            ...prev,
+            items: [...prev.items, commentToDelete].sort((a, b) => a.id - b.id),
+            error: 'Failed to delete comment',
+          }));
+        })
+        .finally(() => {
+          setDeletingIds(prev => prev.filter(i => i !== commentId));
+        });
+    },
+    [commentsState.items],
+  );
 
   const handleAdd = useCallback((newComment: Comment) => {
     setCommentsState(prev => ({
@@ -76,7 +89,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ post, onClose }) => {
     }));
   }, []);
 
-  if (!post) return null;
+  if (!post) {
+    return null;
+  }
 
   const showNoCommentsMessage =
     !commentsState.isLoading &&
@@ -91,18 +106,28 @@ export const Sidebar: React.FC<SidebarProps> = ({ post, onClose }) => {
           aria-label="close"
           onClick={onClose}
         />
-        <h2 className="title is-4" data-cy="PostTitle">#{post.id}: {post.title}</h2>
+        <h2 className="title is-4" data-cy="PostTitle">
+          #{post.id}: {post.title}
+        </h2>
         <p data-cy="PostBody">{post.body}</p>
       </div>
       <hr />
 
       <div className="block">
         <h3 className="title is-5">Comments</h3>
+
         {commentsState.isLoading && <Loader />}
+
         {commentsState.error && (
           <div className="notification is-danger" data-cy="CommentsError">
             {commentsState.error}
           </div>
+        )}
+
+        {showNoCommentsMessage && (
+          <p className="title is-4" data-cy="NoCommentsMessage">
+            No comments yet
+          </p>
         )}
 
         {commentsState.items.length > 0 && !commentsState.isLoading && (
@@ -116,8 +141,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ post, onClose }) => {
                   disabled={deletingIds.includes(comment.id)}
                   data-cy="CommentDelete"
                 />
-                <strong data-cy="CommentAuthor">
-                  <a href={`mailto:${comment.email}`} data-cy="CommentAuthor">{comment.name}</a>
+                <strong>
+                  <a href={`mailto:${comment.email}`} data-cy="CommentAuthor">
+                    {comment.name}
+                  </a>
                 </strong>
                 <p data-cy="CommentBody">{comment.body}</p>
               </li>
@@ -125,27 +152,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ post, onClose }) => {
           </ul>
         )}
 
-        {showNoCommentsMessage && (
-          <p className="title is-4" data-cy="NoCommentsMessage">No comments yet</p>
-        )}
-
-        {!openCommentForm && !commentsState.isLoading && (
-          <button
-            data-cy="WriteCommentButton"
-            type="button"
-            className="button is-link"
-            onClick={() => setOpenCommentForm(true)}
-          >
-            Write a comment
-          </button>
-        )}
+        {!openCommentForm &&
+          !commentsState.isLoading &&
+          !commentsState.error && (
+            <button
+              data-cy="WriteCommentButton"
+              type="button"
+              className="button is-link"
+              onClick={() => setOpenCommentForm(true)}
+            >
+              Write a comment
+            </button>
+          )}
       </div>
 
       {openCommentForm && (
-        <NewCommentForm
-          selectedPost={post}
-          onAddComment={handleAdd}
-        />
+        <NewCommentForm selectedPost={post} onAddComment={handleAdd} />
       )}
     </div>
   );

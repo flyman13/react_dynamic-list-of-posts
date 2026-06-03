@@ -261,7 +261,31 @@ describe('', () => {
         cy.waitFor('@usersRequest');
         cy.wait(500);
 
-        cy.get('@posts').should('not.be.called');
+        // check page-level tracer for any '/posts' calls and fail with details
+        cy.window().then(win => {
+          const calls = win.__postsCalls || [];
+          if (calls && calls.length) {
+            // include the recorded calls in the test failure so Cypress prints stacks
+            throw new Error(
+              'Detected unexpected /posts calls on initial load: ' +
+                JSON.stringify(calls, null, 2),
+            );
+          }
+        });
+
+        // also assert the network spy didn't record any calls; if it did, fail with details
+        cy.get('@posts').then(spy => {
+          // eslint-disable-next-line no-console
+          console.log('POSTS SPY ARGS:', spy.args || []);
+          if (spy && spy.args && spy.args.length) {
+            // the first argument to the stub is the intercepted request object
+            const req = spy.args[0][0];
+            throw new Error(
+              'Posts spy was called unexpectedly. Request details: ' +
+                JSON.stringify(req, null, 2),
+            );
+          }
+        });
       });
 
       it('should not request comments from API', () => {

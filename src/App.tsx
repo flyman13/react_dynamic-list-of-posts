@@ -8,7 +8,7 @@ import { PostsList } from './components/PostsList';
 import { Sidebar } from './components/Sidebar';
 import { UserSelector } from './components/UserSelector';
 import { Loader } from './components/Loader';
-import { getPosts } from './api/posts';
+import { getPosts } from './api/postApi';
 
 import { Post } from './types/Post';
 import { User } from './types/User';
@@ -24,7 +24,7 @@ export const App = () => {
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
-    if (!selectedUser) {
+    if (!selectedUser || !selectedUser.id) {
       return;
     }
 
@@ -41,7 +41,7 @@ export const App = () => {
         setPostsLoaded(true);
         setIsLoading(false);
       });
-  }, [selectedUser]);
+  }, [selectedUser]); // <-- ЗАМІНИ НА ЦЕ (просто selectedUser та getPosts)
 
   const handleTogglePost = (post: Post) => {
     if (selectedPost?.id === post.id) {
@@ -114,7 +114,8 @@ export const App = () => {
             )}
           >
             <div className="tile is-child box is-success">
-              {selectedPost && (
+              {/* СУВОРO ТАК: рендеримо тільки якщо є selectedPost */}
+              {selectedPost && selectedPost.id && (
                 <Sidebar post={selectedPost} onClose={handleCloseSidebar} />
               )}
             </div>

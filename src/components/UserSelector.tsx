@@ -14,25 +14,37 @@ interface Props {
 export const UserSelector: React.FC<Props> = ({
   selectedUser,
   setSelectedUser,
+  setIsLoading, // <-- ОБОВ'ЯЗКОВО ДЕСТРУКТУРИЗУЄМО
+  setErrorMessage, // <-- ОБОВ'ЯЗКОВО ДЕСТРУКТУРИЗУЄМО
 }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    client.get<User[]>('/users')
+    // Перед запитом користувачів вмикаємо лоадер та чистимо помилки
+    setIsLoading(true);
+    setErrorMessage('');
+
+    client
+      .get<User[]>('/users')
       .then(res => setUsers(res || []))
-      .catch(() => {});
+      .catch(() => setErrorMessage('Unable to load users')) // Вимоги ТЗ при помилці юзерів
+      .finally(() => setIsLoading(false)); // Вимикаємо лоадер після 300 мс затримки client
 
     const handleOutsideClick = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
 
     document.addEventListener('click', handleOutsideClick);
+
     return () => document.removeEventListener('click', handleOutsideClick);
-  }, []);
+  }, [setIsLoading, setErrorMessage]); // Додаємо функції в залежності
 
   return (
     <div
@@ -64,7 +76,7 @@ export const UserSelector: React.FC<Props> = ({
               className={classNames('dropdown-item', {
                 'is-active': selectedUser?.id === user.id,
               })}
-              onClick={(e) => {
+              onClick={e => {
                 e.preventDefault();
                 setSelectedUser(user);
                 setIsOpen(false);
