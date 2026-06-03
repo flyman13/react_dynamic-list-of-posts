@@ -10,7 +10,7 @@
       integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
       crossorigin="anonymous"
     />
-    <script type="module" crossorigin src="/react_dynamic-list-of-posts/assets/index-cTDe2Tw3.js"></script>
+    <script type="module" crossorigin src="/react_dynamic-list-of-posts/assets/index-CBTTd8im.js"></script>
     <link rel="stylesheet" crossorigin href="/react_dynamic-list-of-posts/assets/index-CQpgy-4x.css">
   </head>
   <body>
@@ -21,6 +21,19 @@
         try {
           // default to false: posts requests are blocked until app enables them
           window.__allowPostsRequests = window.__allowPostsRequests || false;
+
+          // tracer: record any '/posts' fetch/XHR attempts with URL + stack
+          window.__postsCalls = window.__postsCalls || [];
+          function recordPostsCall(url) {
+            try {
+              var stack = new Error().stack || '';
+              window.__postsCalls.push({
+                url: String(url),
+                stack: String(stack),
+                ts: Date.now(),
+              });
+            } catch (e) {}
+          }
 
           var origFetch = window.fetch;
           if (origFetch) {
@@ -34,13 +47,12 @@
                   typeof url === 'string' &&
                   url.indexOf('/posts') !== -1
                 ) {
-                  if (!window.__allowPostsRequests) {
-                    return Promise.resolve(
-                      new Response(JSON.stringify([]), {
-                        headers: { 'Content-Type': 'application/json' },
-                      }),
-                    );
-                  }
+                  recordPostsCall(url);
+                  // print a trace to the browser console so Cypress runner captures it
+                  try {
+                    console.warn('[TRACER] /posts requested:', url);
+                    console.trace();
+                  } catch (e) {}
                 }
               } catch (e) {}
               return origFetch.apply(this, arguments);
@@ -66,18 +78,7 @@
                     typeof _url === 'string' &&
                     _url.indexOf('/posts') !== -1
                   ) {
-                    if (!window.__allowPostsRequests) {
-                      setTimeout(function () {
-                        if (typeof xhr.onreadystatechange === 'function') {
-                          xhr.readyState = 4;
-                          xhr.status = 200;
-                          xhr.responseText = JSON.stringify([]);
-                          xhr.onreadystatechange();
-                          if (typeof xhr.onload === 'function') xhr.onload();
-                        }
-                      }, 0);
-                      return;
-                    }
+                    recordPostsCall(_url);
                   }
                 } catch (e) {}
                 return send.apply(xhr, arguments);
