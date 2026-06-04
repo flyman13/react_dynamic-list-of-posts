@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import PropTypes from 'prop-types';
 import { Post } from '../types/Post';
 import { Comment } from '../types/Comment';
 import { Loader } from './Loader';
@@ -14,13 +13,8 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ post, onClose }) => {
   const [openCommentForm, setOpenCommentForm] = useState(false);
   const [deletingIds, setDeletingIds] = useState<number[]>([]);
-
-  const [commentsState, setCommentsState] = useState<{
-    items: Comment[];
-    isLoading: boolean;
-    error: string;
-  }>({
-    items: [],
+  const [commentsState, setCommentsState] = useState({
+    items: [] as Comment[],
     isLoading: false,
     error: '',
   });
@@ -93,10 +87,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ post, onClose }) => {
     return null;
   }
 
-  const showNoCommentsMessage =
-    !commentsState.isLoading &&
-    !commentsState.error &&
-    commentsState.items.length === 0;
+  // Розбиваємо умови на ультра-короткі рядки, щоб вкластися в 80 символів
+  const { isLoading, error, items } = commentsState;
+  const showNoComments = !isLoading && !error && items.length === 0;
+  const showCommentsList = items.length > 0 && !isLoading;
+  const showWriteButton = !openCommentForm && !isLoading && !error;
 
   return (
     <div className="content" data-cy="PostDetails">
@@ -116,23 +111,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ post, onClose }) => {
       <div className="block">
         <h3 className="title is-5">Comments</h3>
 
-        {commentsState.isLoading && <Loader />}
+        {isLoading && <Loader />}
 
-        {commentsState.error && (
+        {error && (
           <div className="notification is-danger" data-cy="CommentsError">
-            {commentsState.error}
+            {error}
           </div>
         )}
 
-        {showNoCommentsMessage && (
+        {showNoComments && (
           <p className="title is-4" data-cy="NoCommentsMessage">
             No comments yet
           </p>
         )}
 
-        {commentsState.items.length > 0 && !commentsState.isLoading && (
+        {showCommentsList && (
           <ul>
-            {commentsState.items.map(comment => (
+            {items.map(comment => (
               <li key={comment.id} data-cy="Comment" className="box">
                 <button
                   className="delete is-pulled-right"
@@ -152,18 +147,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ post, onClose }) => {
           </ul>
         )}
 
-        {!openCommentForm &&
-          !commentsState.isLoading &&
-          !commentsState.error && (
-            <button
-              data-cy="WriteCommentButton"
-              type="button"
-              className="button is-link"
-              onClick={() => setOpenCommentForm(true)}
-            >
-              Write a comment
-            </button>
-          )}
+        {showWriteButton && (
+          <button
+            data-cy="WriteCommentButton"
+            type="button"
+            className="button is-link"
+            onClick={() => setOpenCommentForm(true)}
+          >
+            Write a comment
+          </button>
+        )}
       </div>
 
       {openCommentForm && (
@@ -171,14 +164,4 @@ export const Sidebar: React.FC<SidebarProps> = ({ post, onClose }) => {
       )}
     </div>
   );
-};
-
-Sidebar.propTypes = {
-  post: PropTypes.shape({
-    id: PropTypes.number.isRequired,
-    title: PropTypes.string.isRequired,
-    body: PropTypes.string.isRequired,
-    userId: PropTypes.number.isRequired,
-  }),
-  onClose: PropTypes.func.isRequired,
 };

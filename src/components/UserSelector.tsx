@@ -1,6 +1,4 @@
 import React, { useEffect, useState, useRef } from 'react';
-import PropTypes from 'prop-types';
-import classNames from 'classnames';
 import { client } from '../utils/fetchClient';
 import { User } from '../types/User';
 
@@ -14,23 +12,22 @@ interface Props {
 export const UserSelector: React.FC<Props> = ({
   selectedUser,
   setSelectedUser,
-  setIsLoading, // <-- ОБОВ'ЯЗКОВО ДЕСТРУКТУРИЗУЄМО
-  setErrorMessage, // <-- ОБОВ'ЯЗКОВО ДЕСТРУКТУРИЗУЄМО
+  setIsLoading,
+  setErrorMessage,
 }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Перед запитом користувачів вмикаємо лоадер та чистимо помилки
     setIsLoading(true);
     setErrorMessage('');
 
     client
       .get<User[]>('/users')
       .then(res => setUsers(res || []))
-      .catch(() => setErrorMessage('Unable to load users')) // Вимоги ТЗ при помилці юзерів
-      .finally(() => setIsLoading(false)); // Вимикаємо лоадер після 300 мс затримки client
+      .catch(() => setErrorMessage('Unable to load users'))
+      .finally(() => setIsLoading(false));
 
     const handleOutsideClick = (event: MouseEvent) => {
       if (
@@ -44,13 +41,13 @@ export const UserSelector: React.FC<Props> = ({
     document.addEventListener('click', handleOutsideClick);
 
     return () => document.removeEventListener('click', handleOutsideClick);
-  }, [setIsLoading, setErrorMessage]); // Додаємо функції в залежності
+  }, [setIsLoading, setErrorMessage]);
 
   return (
     <div
       ref={dropdownRef}
       data-cy="UserSelector"
-      className={classNames('dropdown', { 'is-active': isOpen })}
+      className={`dropdown ${isOpen ? 'is-active' : ''}`}
     >
       <div className="dropdown-trigger">
         <button
@@ -73,9 +70,7 @@ export const UserSelector: React.FC<Props> = ({
             <a
               key={user.id}
               href={`#user-${user.id}`}
-              className={classNames('dropdown-item', {
-                'is-active': selectedUser?.id === user.id,
-              })}
+              className={`dropdown-item ${selectedUser?.id === user.id ? 'is-active' : ''}`}
               onClick={e => {
                 e.preventDefault();
                 setSelectedUser(user);
@@ -89,16 +84,4 @@ export const UserSelector: React.FC<Props> = ({
       </div>
     </div>
   );
-};
-
-UserSelector.propTypes = {
-  selectedUser: PropTypes.shape({
-    id: PropTypes.number.isRequired,
-    name: PropTypes.string.isRequired,
-    username: PropTypes.string.isRequired,
-    email: PropTypes.string.isRequired,
-  }),
-  setSelectedUser: PropTypes.func.isRequired,
-  setIsLoading: PropTypes.func.isRequired,
-  setErrorMessage: PropTypes.func.isRequired,
 };

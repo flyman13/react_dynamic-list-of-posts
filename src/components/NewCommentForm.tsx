@@ -1,6 +1,4 @@
 import React, { useState } from 'react';
-import PropTypes from 'prop-types';
-import classNames from 'classnames';
 import { client } from '../utils/fetchClient';
 import { Post } from '../types/Post';
 import { Comment } from '../types/Comment';
@@ -9,6 +7,13 @@ interface NewCommentFormProps {
   selectedPost: Post;
   onAddComment: (comment: Comment) => void;
 }
+
+// Виносимо дефолтний обєкт на самий верх файлу, щоб обійти баг відступів
+const INITIAL_ERRORS = {
+  name: false,
+  email: false,
+  body: false,
+};
 
 export const NewCommentForm: React.FC<NewCommentFormProps> = ({
   selectedPost,
@@ -19,17 +24,13 @@ export const NewCommentForm: React.FC<NewCommentFormProps> = ({
   const [body, setBody] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
-  const [errors, setErrors] = useState({
-    name: false,
-    email: false,
-    body: false,
-  });
+  const [errors, setErrors] = useState(INITIAL_ERRORS);
 
   const resetForm = () => {
     setName('');
     setEmail('');
     setBody('');
-    setErrors({ name: false, email: false, body: false });
+    setErrors(INITIAL_ERRORS);
     setSubmitError('');
   };
 
@@ -66,13 +67,15 @@ export const NewCommentForm: React.FC<NewCommentFormProps> = ({
     setIsSubmitting(true);
     setSubmitError('');
 
-    client
-      .post<Comment>('/comments', {
+    const dataToPost = {
       postId: selectedPost.id,
       name,
       email,
       body,
-    })
+    };
+
+    client
+      .post<Comment>('/comments', dataToPost)
       .then(newComment => {
         onAddComment(newComment);
         setBody('');
@@ -98,7 +101,7 @@ export const NewCommentForm: React.FC<NewCommentFormProps> = ({
             id="comment-author-name"
             data-cy="name"
             type="text"
-            className={classNames('input', { 'is-danger': errors.name })}
+            className={`input ${errors.name ? 'is-danger' : ''}`}
             placeholder="Name"
             value={name}
             onChange={handleNameChange}
@@ -125,7 +128,7 @@ export const NewCommentForm: React.FC<NewCommentFormProps> = ({
             id="comment-author-email"
             data-cy="email"
             type="email"
-            className={classNames('input', { 'is-danger': errors.email })}
+            className={`input ${errors.email ? 'is-danger' : ''}`}
             placeholder="Email"
             value={email}
             onChange={handleEmailChange}
@@ -151,7 +154,7 @@ export const NewCommentForm: React.FC<NewCommentFormProps> = ({
           <textarea
             id="comment-body"
             data-cy="body"
-            className={classNames('textarea', { 'is-danger': errors.body })}
+            className={`textarea ${errors.body ? 'is-danger' : ''}`}
             placeholder="Type comment here..."
             value={body}
             onChange={handleBodyChange}
@@ -168,9 +171,7 @@ export const NewCommentForm: React.FC<NewCommentFormProps> = ({
         <div className="control">
           <button
             type="submit"
-            className={classNames('button', 'is-link', {
-              'is-loading': isSubmitting,
-            })}
+            className={`button is-link ${isSubmitting ? 'is-loading' : ''}`}
           >
             Add Comment
           </button>
@@ -188,14 +189,4 @@ export const NewCommentForm: React.FC<NewCommentFormProps> = ({
       </div>
     </form>
   );
-};
-
-NewCommentForm.propTypes = {
-  selectedPost: PropTypes.shape({
-    id: PropTypes.number.isRequired,
-    title: PropTypes.string.isRequired,
-    body: PropTypes.string.isRequired,
-    userId: PropTypes.number.isRequired,
-  }).isRequired,
-  onAddComment: PropTypes.func.isRequired,
 };

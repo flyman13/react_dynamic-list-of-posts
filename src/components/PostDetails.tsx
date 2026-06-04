@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import PropTypes from 'prop-types';
 import { Loader } from './Loader';
 import { NewCommentForm } from './NewCommentForm';
 import { Post } from '../types/Post';
@@ -17,7 +16,6 @@ export const PostDetails: React.FC<Prop> = ({
   selectedPost,
   isLoading,
   setIsLoading,
-  setErrorMessage,
 }) => {
   const [openCommentForm, setOpenCommentForm] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -43,13 +41,17 @@ export const PostDetails: React.FC<Prop> = ({
   };
 
   useEffect(() => {
+    // ЗАХИСТ: спочатку перевіряємо, чи є пост, щоб не ламати setIsLoading в App
+    if (!selectedPost) {
+      setComments([]);
+      setCommentsError('');
+
+      return;
+    }
+
     setCommentsError('');
     setIsLoading(true);
     setIsLoadingComments(true);
-
-    if (!selectedPost) {
-      return;
-    }
 
     getPostComments(selectedPost.id)
       .then(comm => setComments(comm))
@@ -64,7 +66,6 @@ export const PostDetails: React.FC<Prop> = ({
     setOpenCommentForm(false);
   }, [selectedPost]);
 
-  // Виносимо складну умову, щоб лінтер не ламав таби наприкінці файлу
   const showNoCommentsMessage =
     !isLoading && !isLoadingComments && !commentsError && comments.length === 0;
 
@@ -141,10 +142,7 @@ export const PostDetails: React.FC<Prop> = ({
 
       {openCommentForm && (
         <NewCommentForm
-          selectedPost={selectedPost}
-          setIsLoading={setIsLoading}
-          setErrorMessage={setErrorMessage}
-          setOpenCommentForm={setOpenCommentForm}
+          selectedPost={selectedPost as Post}
           onAddComment={newComment =>
             setComments(prev => [...prev, newComment])
           }
@@ -152,16 +150,4 @@ export const PostDetails: React.FC<Prop> = ({
       )}
     </div>
   );
-};
-
-PostDetails.propTypes = {
-  selectedPost: PropTypes.shape({
-    id: PropTypes.number.isRequired,
-    title: PropTypes.string.isRequired,
-    body: PropTypes.string.isRequired,
-    userId: PropTypes.number.isRequired,
-  }),
-  isLoading: PropTypes.bool.isRequired,
-  setIsLoading: PropTypes.func.isRequired,
-  setErrorMessage: PropTypes.func.isRequired,
 };
